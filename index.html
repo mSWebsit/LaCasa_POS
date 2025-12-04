@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>LACASA POS - Production</title>
+    <title>LACASA POS - Advanced Recipes</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -361,7 +361,7 @@
         );
       };
 
-      // --- TABLES PAGE ---
+      // --- TABLES PAGE (UNCHANGED) ---
       const TablesPage = ({ setActiveTicketId, setCurrentView }) => {
           const { tickets, createTicket, formatPrice, tableConfig, updateTableConfig } = useData();
           const [filter, setFilter] = useState('all'); // all, available, occupied
@@ -446,7 +446,7 @@
         );
       };
 
-      // --- SALES PAGE ---
+      // --- SALES PAGE (UNCHANGED) ---
       const SalesPage = () => {
         const { salesHistory, formatPrice, convertPrice } = useData();
         const [timeframe, setTimeframe] = useState('daily');
@@ -462,7 +462,7 @@
         );
       };
 
-      // --- STOCK PAGE ---
+      // --- STOCK PAGE (UNCHANGED) ---
       const StockPage = () => {
         const { stockItems, addStockItem, updateStockItem, deleteStockItem, categories, currency } = useData();
         const [searchTerm, setSearchTerm] = useState('');
@@ -541,7 +541,7 @@
         );
       };
 
-      // --- INVENTORY PAGE ---
+      // --- INVENTORY PAGE (UPDATED WITH STOCK LINKING) ---
       const InventoryPage = () => {
         const { menuItems, stockItems, addMenuItem, updateMenuItem, deleteMenuItem, formatPrice, categories } = useData();
         const [isModalOpen, setIsModalOpen] = useState(false);
@@ -552,7 +552,11 @@
         // Link Stock Modal State
         const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
         const [linkingItem, setLinkingItem] = useState(null);
-        const [selectedStockId, setSelectedStockId] = useState('');
+        
+        // Recipe State for Link Modal
+        const [tempRecipe, setTempRecipe] = useState([]);
+        const [linkStockId, setLinkStockId] = useState('');
+        const [linkQty, setLinkQty] = useState(1);
         
         // Modifiers & Recipe (Full Edit)
         const [selStockId, setSelStockId] = useState('');
@@ -569,14 +573,28 @@
         
         const openLinkModal = (item) => {
             setLinkingItem(item);
-            setSelectedStockId(item.recipe && item.recipe.length > 0 ? item.recipe[0].itemId : '');
+            setTempRecipe(item.recipe || []);
+            setLinkStockId('');
+            setLinkQty(1);
             setIsLinkModalOpen(true);
         };
         
-        const handleLinkStock = () => {
+        const handleAddRecipeItem = () => {
+            if(!linkStockId || linkQty <= 0) return;
+            setTempRecipe([...tempRecipe, { itemId: linkStockId, quantity: linkQty }]);
+            setLinkStockId('');
+            setLinkQty(1);
+        };
+        
+        const handleRemoveRecipeItem = (index) => {
+            const newRecipe = [...tempRecipe];
+            newRecipe.splice(index, 1);
+            setTempRecipe(newRecipe);
+        };
+        
+        const handleSaveRecipe = () => {
              if(!linkingItem) return;
-             const newRecipe = selectedStockId ? [{ itemId: selectedStockId, quantity: 1 }] : [];
-             updateMenuItem({ ...linkingItem, recipe: newRecipe });
+             updateMenuItem({ ...linkingItem, recipe: tempRecipe });
              setIsLinkModalOpen(false);
         };
 
@@ -606,7 +624,7 @@
                                  <div className="flex gap-2 text-xs">
                                      <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-500 uppercase">{item.category}</span>
                                      {item.recipe && item.recipe.length > 0 ? 
-                                         <span className="bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded border border-emerald-100 flex items-center gap-1"><LinkIcon size={10}/> Linked</span> : 
+                                         <span className="bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded border border-emerald-100 flex items-center gap-1"><LinkIcon size={10}/> {item.recipe.length} Linked</span> : 
                                          <span className="bg-red-50 text-red-600 px-2 py-0.5 rounded border border-red-100 flex items-center gap-1"><AlertCircle size={10}/> No Stock</span>
                                      }
                                  </div>
@@ -627,21 +645,55 @@
              {/* EDIT PRODUCT MODAL */}
              {isModalOpen && (<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"><div className="bg-white w-full max-w-lg rounded-2xl shadow-xl flex flex-col max-h-[85vh]"><div className="p-4 border-b flex justify-between items-center"><h3 className="font-bold text-lg">{editingItem ? 'Edit' : 'New'} Product</h3><button onClick={() => setIsModalOpen(false)}><X/></button></div><form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-4"><input type="text" placeholder="Name" className="w-full border p-2 rounded" required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} /><div className="grid grid-cols-2 gap-4"><input type="number" placeholder="Price" className="w-full border p-2 rounded" required value={formData.price} onChange={e => setFormData({...formData, price: parseFloat(e.target.value)})} /><select className="w-full border p-2 rounded" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}>{categories.map(c => <option key={c} value={c}>{c}</option>)}</select></div><div className="border-t pt-4"><label className="block font-bold text-sm mb-2">Modifiers</label><div className="flex gap-2 mb-2"><input type="text" placeholder="Name" className="flex-1 border p-2 rounded" value={newModName} onChange={e => setNewModName(e.target.value)} /><input type="number" placeholder="Price" className="w-20 border p-2 rounded" value={newModPrice} onChange={e => setNewModPrice(e.target.value)} /><button type="button" onClick={addModifier} className="bg-amber-500 text-white p-2 rounded"><Plus size={16}/></button></div><div className="space-y-1">{formData.modifiers && formData.modifiers.map((mod, idx) => (<div key={idx} className="flex justify-between items-center text-sm bg-slate-50 p-2 border rounded"><span>{mod.name} (+{formatPrice(mod.price)})</span><button type="button" onClick={() => removeModifier(idx)} className="text-red-500"><MinusCircle size={16}/></button></div>))}</div></div><button type="submit" className="w-full bg-emerald-600 text-white py-3 rounded-xl font-bold">Save Product</button></form></div></div>)}
              
-             {/* QUICK LINK STOCK MODAL */}
+             {/* QUICK LINK STOCK MODAL (ADVANCED) */}
              {isLinkModalOpen && (
                  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                     <div className="bg-white w-full max-w-sm rounded-2xl p-6 shadow-xl">
-                         <h3 className="font-bold text-lg mb-2">Link Stock Item</h3>
-                         <p className="text-sm text-slate-500 mb-4">Select which stock item is deducted when <b>{linkingItem.name}</b> is sold.</p>
-                         <select className="w-full border p-2 rounded mb-4" value={selectedStockId} onChange={e => setSelectedStockId(e.target.value)}>
-                             <option value="">-- No Stock Link --</option>
-                             {stockItems.sort((a,b) => a.name.localeCompare(b.name)).map(s => (
-                                 <option key={s.id} value={s.id}>{s.name} (Qty: {s.stock})</option>
-                             ))}
-                         </select>
-                         <div className="flex gap-2">
-                             <button onClick={() => setIsLinkModalOpen(false)} className="flex-1 py-2 border rounded-lg text-slate-600">Cancel</button>
-                             <button onClick={handleLinkStock} className="flex-1 py-2 bg-blue-600 text-white rounded-lg font-bold">Save Link</button>
+                     <div className="bg-white w-full max-w-md rounded-2xl p-6 shadow-xl flex flex-col max-h-[85vh]">
+                         <div className="mb-4">
+                             <h3 className="font-bold text-lg mb-1">Recipe: {linkingItem.name}</h3>
+                             <p className="text-sm text-slate-500">Manage ingredients deducted when sold.</p>
+                         </div>
+                         
+                         {/* Existing Ingredients List */}
+                         <div className="flex-1 overflow-y-auto mb-4 border rounded-lg bg-slate-50 p-2">
+                             {tempRecipe.length === 0 ? (
+                                 <p className="text-center text-slate-400 text-sm py-4">No ingredients linked yet.</p>
+                             ) : (
+                                 <div className="space-y-2">
+                                     {tempRecipe.map((ing, idx) => {
+                                         const stockItem = stockItems.find(s => s.id === ing.itemId);
+                                         return (
+                                             <div key={idx} className="flex justify-between items-center bg-white p-2 rounded border shadow-sm text-sm">
+                                                 <span className="font-medium text-slate-700">{stockItem ? stockItem.name : 'Unknown Item'}</span>
+                                                 <div className="flex items-center gap-3">
+                                                     <span className="font-bold text-slate-900">x{ing.quantity}</span>
+                                                     <button onClick={() => handleRemoveRecipeItem(idx)} className="text-red-500 hover:text-red-700"><Trash2 size={16}/></button>
+                                                 </div>
+                                             </div>
+                                         )
+                                     })}
+                                 </div>
+                             )}
+                         </div>
+
+                         {/* Add New Ingredient */}
+                         <div className="border-t pt-4">
+                             <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Add Ingredient</label>
+                             <div className="flex gap-2">
+                                 <select className="flex-1 border p-2 rounded text-sm" value={linkStockId} onChange={e => setLinkStockId(e.target.value)}>
+                                     <option value="">Select Item...</option>
+                                     {stockItems.sort((a,b) => a.name.localeCompare(b.name)).map(s => (
+                                         <option key={s.id} value={s.id}>{s.name} (Stock: {s.stock})</option>
+                                     ))}
+                                 </select>
+                                 <input type="number" className="w-16 border p-2 rounded text-sm text-center" placeholder="Qty" value={linkQty} onChange={e => setLinkQty(parseFloat(e.target.value))} />
+                                 <button onClick={handleAddRecipeItem} className="bg-emerald-600 text-white p-2 rounded hover:bg-emerald-700"><Plus size={18}/></button>
+                             </div>
+                         </div>
+
+                         <div className="flex gap-2 mt-6">
+                             <button onClick={() => setIsLinkModalOpen(false)} className="flex-1 py-3 border rounded-xl font-bold text-slate-600">Cancel</button>
+                             <button onClick={handleSaveRecipe} className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg">Save Recipe</button>
                          </div>
                      </div>
                  </div>
