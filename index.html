@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>LACASA POS - Fixed Stock</title>
+    <title>LACASA POS - Production Ready</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -78,7 +78,7 @@
         Edit2, Trash2, Save, PackageOpen, Layers,
         DollarSign, ShoppingBag, Star, ClipboardList, ListChecks, 
         AlertTriangle, Tag, Printer, FileText, User, Link as LinkIcon, 
-        MinusCircle, Menu, LogOut, Loader2, Grid3X3, Split, Scissors, Armchair, Settings, RefreshCw, AlertCircle
+        MinusCircle, Menu, LogOut, Loader2, Grid3X3, Split, Scissors, Armchair, Settings, AlertCircle
       } from 'lucide-react';
       import { 
         BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
@@ -277,44 +277,6 @@
            await batch.commit();
         };
 
-        const resetAndSeedSoftDrinks = async () => {
-            if(!confirm("⚠️ WARNING: This will DELETE ALL Menu, Stock, Sales, and Tickets.\nIt will then seed ONLY Soft Drinks.\nAre you sure?")) return;
-            const batch = writeBatch(db);
-            const collections = ['menuItems', 'stockItems', 'tickets', 'sales', 'categories', 'groups'];
-            for(const colName of collections) {
-                const snap = await getDocs(collection(db, colName));
-                snap.docs.forEach(d => batch.delete(d.ref));
-            }
-            const categories = ['Soft Drinks', 'Water', 'Energy', 'Juices'];
-            categories.forEach(c => { batch.set(doc(collection(db, 'categories')), { name: c }); });
-            const stockData = [
-                { name: 'Pepsi Can', category: 'Soft Drinks', stock: 48, lowStockThreshold: 10, price: 0.40 },
-                { name: '7UP Can', category: 'Soft Drinks', stock: 48, lowStockThreshold: 10, price: 0.40 },
-                { name: 'Miranda Can', category: 'Soft Drinks', stock: 24, lowStockThreshold: 10, price: 0.40 },
-                { name: 'Diet Pepsi Can', category: 'Soft Drinks', stock: 24, lowStockThreshold: 5, price: 0.40 },
-                { name: 'Water Small (500ml)', category: 'Water', stock: 100, lowStockThreshold: 20, price: 0.15 },
-                { name: 'Red Bull', category: 'Energy', stock: 24, lowStockThreshold: 6, price: 1.20 },
-            ];
-            const stockRefs = {};
-            stockData.forEach(item => { const ref = doc(collection(db, 'stockItems')); batch.set(ref, item); stockRefs[item.name] = ref.id; });
-            const menuData = [
-                { name: 'Pepsi', price: 1.00, category: 'Soft Drinks', stockName: 'Pepsi Can' },
-                { name: '7UP', price: 1.00, category: 'Soft Drinks', stockName: '7UP Can' },
-                { name: 'Miranda', price: 1.00, category: 'Soft Drinks', stockName: 'Miranda Can' },
-                { name: 'Diet Pepsi', price: 1.00, category: 'Soft Drinks', stockName: 'Diet Pepsi Can' },
-                { name: 'Water Small', price: 0.50, category: 'Water', stockName: 'Water Small (500ml)' },
-                { name: 'Red Bull', price: 3.50, category: 'Energy', stockName: 'Red Bull' },
-            ];
-            menuData.forEach(item => {
-                const ref = doc(collection(db, 'menuItems'));
-                const stockId = stockRefs[item.stockName];
-                batch.set(ref, { name: item.name, price: item.price, category: item.category, recipe: stockId ? [{ itemId: stockId, quantity: 1 }] : [], modifiers: [] });
-            });
-            await batch.commit();
-            alert("Database Reset Complete! Stock is now Soft Drinks only.");
-            window.location.reload();
-        };
-
         if (authLoading) return <div className="h-screen w-screen flex items-center justify-center text-emerald-600"><Loader2 className="animate-spin w-10 h-10"/></div>;
         if (!user) return <LoginPage />;
 
@@ -326,8 +288,7 @@
             addMenuItem, updateMenuItem, deleteMenuItem,
             addStockItem, updateStockItem, deleteStockItem,
             addCategory, deleteCategory, addGroup, deleteGroup, updateTableConfig,
-            createTicket, updateTicketItems, updateTicketDetails, deleteTicket, completeTicket,
-            resetAndSeedSoftDrinks
+            createTicket, updateTicketItems, updateTicketDetails, deleteTicket, completeTicket
           }}>
             {children}
           </DataContext.Provider>
@@ -342,7 +303,7 @@
 
       // --- SIDEBAR ---
       const Sidebar = ({ currentView, setCurrentView, isMobileMenuOpen, setIsMobileMenuOpen }) => {
-        const { currency, toggleCurrency, logout, resetAndSeedSoftDrinks } = useData();
+        const { currency, toggleCurrency, logout } = useData();
         const NavItem = ({ view, icon: Icon, label }) => (
           <button onClick={() => { setCurrentView(view); setIsMobileMenuOpen(false); }} className={`flex items-center justify-center lg:justify-start gap-3 px-3 lg:px-4 py-3 rounded-xl transition-all w-full ${currentView === view ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'}`}>
             <Icon size={24} strokeWidth={2.5} className="shrink-0" />
@@ -363,12 +324,6 @@
                 <NavItem view="stock" icon={ClipboardList} label="Stock" />
                 <NavItem view="inventory" icon={Package} label="Menu" />
               </nav>
-              <div className="p-4 space-y-2">
-                 <button onClick={resetAndSeedSoftDrinks} className="flex items-center justify-center lg:justify-start gap-3 w-full p-2 lg:px-4 xl:py-2 rounded-xl text-amber-600 bg-amber-50 hover:bg-amber-100 border border-amber-200">
-                    <RefreshCw size={18} />
-                    <span className="hidden lg:block font-bold text-xs">Reset & Seed Soft Drinks</span>
-                 </button>
-              </div>
               <div className="p-4 border-t border-slate-200 space-y-2">
                 <button onClick={toggleCurrency} className="flex items-center justify-center lg:justify-between w-full p-2 lg:px-4 xl:py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700">
                   <div className="flex items-center gap-2"><Coins size={20} /><span className="hidden lg:block font-medium text-sm">Currency</span></div>
@@ -398,7 +353,6 @@
                     <NavItem view="stock" icon={ClipboardList} label="Stock" />
                     <NavItem view="inventory" icon={Package} label="Menu" />
                   </nav>
-                  <button onClick={resetAndSeedSoftDrinks} className="flex items-center gap-3 p-3 text-amber-600 border-t mt-4 bg-amber-50"><RefreshCw size={20} /> Reset DB</button>
                   <button onClick={logout} className="flex items-center gap-3 p-3 text-red-500 border-t mt-4"><LogOut size={20} /> Logout</button>
                 </div>
               </div>
@@ -508,7 +462,7 @@
         );
       };
 
-      // --- STOCK PAGE (FIXED: Added Delete & Add Logic) ---
+      // --- STOCK PAGE (UNCHANGED) ---
       const StockPage = () => {
         const { stockItems, addStockItem, updateStockItem, deleteStockItem, categories, currency } = useData();
         const [searchTerm, setSearchTerm] = useState('');
