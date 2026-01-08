@@ -440,7 +440,7 @@
               {activeTicket.items.map((item, i) => (<div key={i} style={{marginBottom: '5px'}}><div className="receipt-line receipt-bold"><span>{item.quantity} x {item.name}</span><span>{formatPrice(item.price * item.quantity)}</span></div>{item.selectedModifiers && item.selectedModifiers.map((m, mi) => (<div key={mi} className="receipt-line" style={{fontSize: '10px', color: '#444', paddingLeft: '10px'}}><span>+ {m.name}</span><span>{formatPrice(m.price * item.quantity)}</span></div>))}</div>))}
               <div className="receipt-divider"></div>
               <div className="receipt-line receipt-large"><span>TOTAL</span><span>{formatPrice(activeTotal)}</span></div>
-              <div className="receipt-header" style={{marginTop: '15px'}}><div>Thank You!</div></div>
+              <div className="receipt-header" style={{marginTop: '15px'}}><div>Have a nice day!</div></div>
             </div>
           </div>
         );
