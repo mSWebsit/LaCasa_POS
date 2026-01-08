@@ -435,7 +435,7 @@
             <div id="printable-receipt" className="print-only">
               <div className="receipt-header"><div className="receipt-large">LACASA</div><div>Lounge & Cafe</div><div className="receipt-divider"></div></div>
               <div className="receipt-line"><span>Date: {new Date().toLocaleDateString()}</span><span>Time: {new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span></div>
-              <div className="receipt-line"><span>Table: {activeTicket.name.replace('Table ', '')}</span><span>Tkt: #{activeTicket.id.slice(-4)}</span></div>
+              
               <div className="receipt-divider"></div>
               {activeTicket.items.map((item, i) => (<div key={i} style={{marginBottom: '5px'}}><div className="receipt-line receipt-bold"><span>{item.quantity} x {item.name}</span><span>{formatPrice(item.price * item.quantity)}</span></div>{item.selectedModifiers && item.selectedModifiers.map((m, mi) => (<div key={mi} className="receipt-line" style={{fontSize: '10px', color: '#444', paddingLeft: '10px'}}><span>+ {m.name}</span><span>{formatPrice(m.price * item.quantity)}</span></div>))}</div>))}
               <div className="receipt-divider"></div>
