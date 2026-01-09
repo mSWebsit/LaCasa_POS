@@ -407,48 +407,241 @@
       // --- POS PAGE (ORDERING ONLY) ---
       const POSPage = ({ activeTicketId, setActiveTicketId, setCurrentView }) => {
         const { menuItems, tickets, updateTicketItems, completeTicket, formatPrice, categories: contextCategories, updateTicketDetails } = useData();
-        const [searchTerm, setSearchTerm] = useState(''); const [selectedCategory, setSelectedCategory] = useState('All'); const [selectedGroup, setSelectedGroup] = useState('All'); const [showNote, setShowNote] = useState(false); const [modModalItem, setModModalItem] = useState(null); const [selectedMods, setSelectedMods] = useState([]); const [splitMode, setSplitMode] = useState(false); const [selectedSplitIndices, setSelectedSplitIndices] = useState([]);
+        const [searchTerm, setSearchTerm] = useState(''); 
+        const [selectedCategory, setSelectedCategory] = useState('All'); 
+        const [selectedGroup, setSelectedGroup] = useState('All'); 
+        const [showNote, setShowNote] = useState(false); 
+        const [modModalItem, setModModalItem] = useState(null); 
+        const [selectedMods, setSelectedMods] = useState([]); 
+        const [splitMode, setSplitMode] = useState(false); 
+        const [selectedSplitIndices, setSelectedSplitIndices] = useState([]);
+        
+        // This state controls what the printer sees
+        const [printMode, setPrintMode] = useState('receipt'); 
+
         const activeTicket = tickets.find(t => t.id === activeTicketId);
-        useEffect(() => { if(!activeTicket && tickets.length > 0) {} }, [activeTicket, tickets]);
-        if (!activeTicket) return (<div className="h-full flex flex-col items-center justify-center bg-slate-50 text-slate-400"><Armchair size={64} className="mb-4 opacity-50"/><h2 className="text-2xl font-bold mb-2">No Active Table</h2><p className="mb-6">Please select a table to start an order.</p><button onClick={() => setCurrentView('tables')} className="px-6 py-3 bg-emerald-600 text-white rounded-xl font-bold shadow-lg hover:bg-emerald-700">Go to Tables</button></div>);
+        
+        if (!activeTicket) return (
+          <div className="h-full flex flex-col items-center justify-center bg-slate-50 text-slate-400">
+            <Armchair size={64} className="mb-4 opacity-50"/>
+            <h2 className="text-2xl font-bold mb-2">No Active Table</h2>
+            <button onClick={() => setCurrentView('tables')} className="px-6 py-3 bg-emerald-600 text-white rounded-xl font-bold shadow-lg hover:bg-emerald-700">Go to Tables</button>
+          </div>
+        );
+
         const categories = useMemo(() => ['All', ...contextCategories], [contextCategories]);
-        const availableGroups = useMemo(() => { if (selectedCategory === 'All') return []; const groups = new Set(); menuItems.forEach(item => { if (item.category === selectedCategory && item.group) groups.add(item.group); }); return ['All', ...Array.from(groups).sort()]; }, [menuItems, selectedCategory]);
-        const filteredInventory = useMemo(() => menuItems.filter(item => { const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()); const matchesCategory = selectedCategory === 'All' || item.category === selectedCategory; const matchesGroup = selectedGroup === 'All' || !availableGroups.length || item.group === selectedGroup; return matchesSearch && matchesCategory && matchesGroup; }), [menuItems, searchTerm, selectedCategory, selectedGroup, availableGroups]);
-        const handleItemClick = (item) => { if(item.modifiers && item.modifiers.length > 0) { setModModalItem(item); setSelectedMods([]); } else { addItemToTicket(item, []); } };
-        const addItemToTicket = (item, mods) => { const newItem = { ...item, ticketItemId: Date.now() + Math.random(), quantity: 1, selectedModifiers: mods }; updateTicketItems(activeTicket.id, [...activeTicket.items, newItem]); setModModalItem(null); };
-        const handleUpdateQuantity = (ticketItemId, delta) => { const newItems = activeTicket.items.map(i => { if (i.ticketItemId === ticketItemId) return { ...i, quantity: Math.max(0, i.quantity + delta) }; return i; }).filter(i => i.quantity > 0); updateTicketItems(activeTicket.id, newItems); };
-        const toggleSplitItem = (index) => { if(selectedSplitIndices.includes(index)) setSelectedSplitIndices(prev => prev.filter(i => i !== index)); else setSelectedSplitIndices(prev => [...prev, index]); };
-        const handleComplete = (isPartial = false) => { if(isPartial) { completeTicket(activeTicket.id, selectedSplitIndices); setSplitMode(false); setSelectedSplitIndices([]); } else { completeTicket(activeTicket.id); setCurrentView('tables'); } };
-        const handlePrint = () => window.print();
-        const activeTotal = activeTicket.items.reduce((sum, i) => { const modSum = (i.selectedModifiers || []).reduce((ms, m) => ms + m.price, 0); return sum + ((i.price + modSum) * i.quantity); }, 0);
-        const splitTotal = splitMode ? activeTicket.items.reduce((sum, i, idx) => { if(selectedSplitIndices.includes(idx)) { const modSum = (i.selectedModifiers || []).reduce((ms, m) => ms + m.price, 0); return sum + ((i.price + modSum) * i.quantity); } return sum; }, 0) : 0;
+        
+        const availableGroups = useMemo(() => { 
+          if (selectedCategory === 'All') return []; 
+          const groups = new Set(); 
+          menuItems.forEach(item => { if (item.category === selectedCategory && item.group) groups.add(item.group); }); 
+          return ['All', ...Array.from(groups).sort()]; 
+        }, [menuItems, selectedCategory]);
+
+        const filteredInventory = useMemo(() => menuItems.filter(item => { 
+          const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()); 
+          const matchesCategory = selectedCategory === 'All' || item.category === selectedCategory; 
+          const matchesGroup = selectedGroup === 'All' || !availableGroups.length || item.group === selectedGroup; 
+          return matchesSearch && matchesCategory && matchesGroup; 
+        }), [menuItems, searchTerm, selectedCategory, selectedGroup, availableGroups]);
+
+        const handleItemClick = (item) => { 
+          if(item.modifiers && item.modifiers.length > 0) { setModModalItem(item); setSelectedMods([]); } 
+          else { addItemToTicket(item, []); } 
+        };
+
+        const addItemToTicket = (item, mods) => { 
+          const newItem = { ...item, ticketItemId: Date.now() + Math.random(), quantity: 1, selectedModifiers: mods }; 
+          updateTicketItems(activeTicket.id, [...activeTicket.items, newItem]); 
+          setModModalItem(null); 
+        };
+
+        const handleUpdateQuantity = (ticketItemId, delta) => { 
+          const newItems = activeTicket.items.map(i => { 
+            if (i.ticketItemId === ticketItemId) return { ...i, quantity: Math.max(0, i.quantity + delta) }; 
+            return i; 
+          }).filter(i => i.quantity > 0); 
+          updateTicketItems(activeTicket.id, newItems); 
+        };
+
+        const toggleSplitItem = (index) => { 
+          if(selectedSplitIndices.includes(index)) setSelectedSplitIndices(prev => prev.filter(i => i !== index)); 
+          else setSelectedSplitIndices(prev => [...prev, index]); 
+        };
+
+        const handleComplete = (isPartial = false) => { 
+          if(isPartial) { 
+            completeTicket(activeTicket.id, selectedSplitIndices); 
+            setSplitMode(false); 
+            setSelectedSplitIndices([]); 
+          } else { 
+            completeTicket(activeTicket.id); 
+            setCurrentView('tables'); 
+          } 
+        };
+
+        // Handlers to trigger the Prowill Printer
+        const handleKitchenPrint = () => {
+          setPrintMode('kitchen');
+          setTimeout(() => { window.print(); }, 50);
+        };
+
+        const handlePayAndPrint = () => {
+          setPrintMode('receipt');
+          setTimeout(() => { 
+            window.print(); 
+            handleComplete(false); 
+          }, 50);
+        };
+
+        const activeTotal = activeTicket.items.reduce((sum, i) => { 
+          const modSum = (i.selectedModifiers || []).reduce((ms, m) => ms + m.price, 0); 
+          return sum + ((i.price + modSum) * i.quantity); 
+        }, 0);
+
+        const splitTotal = splitMode ? activeTicket.items.reduce((sum, i, idx) => { 
+          if(selectedSplitIndices.includes(idx)) { 
+            const modSum = (i.selectedModifiers || []).reduce((ms, m) => ms + m.price, 0); 
+            return sum + ((i.price + modSum) * i.quantity); 
+          } return sum; 
+        }, 0) : 0;
+
         return (
           <div className="flex h-full bg-slate-50 relative">
             <div className="flex-1 flex flex-col h-full overflow-hidden pr-0 md:pr-80 lg:pr-96">
               <div className="p-4 bg-white border-b border-slate-200 flex flex-col gap-4 shadow-sm z-10">
-                 <div className="flex gap-2"><button onClick={() => setCurrentView('tables')} className="px-4 py-2 bg-slate-800 text-white rounded-xl flex items-center gap-2 font-bold hover:bg-slate-700"><Armchair size={18}/> Back</button><div className="relative flex-1"><Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} /><input type="text" placeholder="Search..." className="w-full pl-12 pr-4 py-3 bg-slate-100 border-none rounded-xl outline-none focus:ring-2 focus:ring-emerald-500" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} /></div></div>
-                 <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">{categories.map(cat => <button key={cat} onClick={() => {setSelectedCategory(cat); setSelectedGroup('All')}} className={`px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-all ${selectedCategory === cat ? 'bg-emerald-600 text-white shadow' : 'bg-slate-100 text-slate-600'}`}>{cat}</button>)}</div>
+                 <div className="flex gap-2">
+                   <button onClick={() => setCurrentView('tables')} className="px-4 py-2 bg-slate-800 text-white rounded-xl flex items-center gap-2 font-bold hover:bg-slate-700"><Armchair size={18}/> Back</button>
+                   <div className="relative flex-1"><Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} /><input type="text" placeholder="Search..." className="w-full pl-12 pr-4 py-3 bg-slate-100 border-none rounded-xl outline-none" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} /></div>
+                 </div>
+                 <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+                   {categories.map(cat => <button key={cat} onClick={() => {setSelectedCategory(cat); setSelectedGroup('All')}} className={`px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-all ${selectedCategory === cat ? 'bg-emerald-600 text-white shadow' : 'bg-slate-100 text-slate-600'}`}>{cat}</button>)}
+                 </div>
                  {availableGroups.length > 0 && <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar pt-1">{availableGroups.map(group => <button key={group} onClick={() => setSelectedGroup(group)} className={`px-3 py-1 rounded-md text-xs font-semibold whitespace-nowrap ${selectedGroup === group ? 'bg-emerald-100 text-emerald-800 ring-1 ring-emerald-300' : 'bg-slate-50 text-slate-500 border'}`}>{group}</button>)}</div>}
               </div>
-              <div className="flex-1 overflow-y-auto p-4"><div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-4 gap-3">{filteredInventory.map(item => (<button key={item.id} onClick={() => handleItemClick(item)} className="flex flex-col text-left p-3 rounded-xl border-2 bg-white border-slate-200 hover:border-emerald-500 min-h-[9rem] group transition-all hover:shadow-lg relative overflow-hidden">{item.modifiers && item.modifiers.length > 0 && <div className="absolute top-0 right-0 bg-amber-100 text-amber-700 p-1 rounded-bl-lg"><ListChecks size={14}/></div>}<div className="w-full flex justify-end mb-1 min-h-[1.25rem]">{item.group && <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full uppercase">{item.group}</span>}</div><span className="font-bold text-slate-800 leading-tight mb-2 line-clamp-2 text-sm group-hover:text-emerald-700">{item.name}</span><div className="mt-auto pt-2 border-t border-dashed border-slate-100 w-full"><span className="block font-extrabold text-lg text-emerald-600">{formatPrice(item.price)}</span></div></button>))}</div></div>
+              <div className="flex-1 overflow-y-auto p-4">
+                <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-4 gap-3">
+                  {filteredInventory.map(item => (
+                    <button key={item.id} onClick={() => handleItemClick(item)} className="flex flex-col text-left p-3 rounded-xl border-2 bg-white border-slate-200 hover:border-emerald-500 min-h-[9rem] group transition-all relative overflow-hidden">
+                      <div className="w-full flex justify-end mb-1 min-h-[1.25rem]">{item.group && <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full uppercase">{item.group}</span>}</div>
+                      <span className="font-bold text-slate-800 leading-tight mb-2 line-clamp-2 text-sm">{item.name}</span>
+                      <div className="mt-auto pt-2 border-t border-dashed border-slate-100 w-full"><span className="block font-extrabold text-lg text-emerald-600">{formatPrice(item.price)}</span></div>
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
+
             <div className="w-full md:w-80 lg:w-96 bg-white border-l border-slate-200 flex flex-col h-full fixed right-0 top-0 pt-16 md:pt-0 z-30 translate-x-full md:translate-x-0 transition-transform shadow-2xl md:shadow-none">
                <div className="p-3 bg-emerald-600 text-white flex justify-between items-center shadow-md shrink-0"><div className="font-bold text-lg">{activeTicket.name}</div><div className="text-xs opacity-80">{activeTicket.id.slice(-6)}</div></div>
                <div className="p-2 border-b bg-slate-50 flex gap-2"><div className="flex-1 bg-white border rounded-md flex items-center px-2"><User size={14} className="text-slate-400 mr-2"/><input className="w-full py-2 text-sm outline-none" placeholder="Customer Name" value={activeTicket.customerName || ''} onChange={e => updateTicketDetails(activeTicket.id, { customerName: e.target.value })}/></div><button onClick={() => setSplitMode(!splitMode)} className={`p-2 border rounded-md ${splitMode ? 'bg-amber-100 text-amber-700 border-amber-300' : 'bg-white text-slate-500'}`} title="Split Bill"><Scissors size={18}/></button></div>
-               {splitMode && <div className="bg-amber-50 px-4 py-2 text-xs text-amber-700 font-bold border-b border-amber-100 text-center">Select items to pay separately</div>}
-               <div className="flex-1 overflow-y-auto p-2 space-y-2">{activeTicket.items.length > 0 ? activeTicket.items.map((item, idx) => (<div key={item.ticketItemId || idx} onClick={() => splitMode && toggleSplitItem(idx)} className={`flex flex-col p-3 rounded-xl border transition-all cursor-pointer ${splitMode ? (selectedSplitIndices.includes(idx) ? 'bg-emerald-50 border-emerald-500 ring-1 ring-emerald-500' : 'opacity-50 border-slate-200') : 'bg-white border-slate-100'}`}><div className="flex justify-between items-start"><div className="flex-1"><div className="font-bold text-slate-800 text-sm">{item.name}</div><div className="text-xs text-slate-500">{formatPrice(item.price)}</div>{item.selectedModifiers && item.selectedModifiers.map((m, mi) => (<div key={mi} className="text-[10px] text-slate-500 flex items-center gap-1"><Plus size={8}/> {m.name} ({formatPrice(m.price)})</div>))}</div>{!splitMode && (<div className="flex items-center gap-2 ml-2"><button onClick={(e) => {e.stopPropagation(); handleUpdateQuantity(item.ticketItemId, -1)}} className="w-6 h-6 flex items-center justify-center bg-slate-100 rounded hover:bg-slate-200"><Minus size={12}/></button><span className="text-sm font-bold w-4 text-center">{item.quantity}</span><button onClick={(e) => {e.stopPropagation(); handleUpdateQuantity(item.ticketItemId, 1)}} className="w-6 h-6 flex items-center justify-center bg-emerald-100 text-emerald-700 rounded hover:bg-emerald-200"><Plus size={12}/></button></div>)}{splitMode && <div className="font-bold text-sm">x{item.quantity}</div>}</div></div>)) : <div className="h-full flex flex-col items-center justify-center text-slate-400"><ShoppingCart size={40} /><p>Empty</p></div>}</div>
-               <div className="p-4 bg-white border-t border-slate-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-10"><div className="flex justify-between text-xl font-extrabold text-slate-900 mb-4"><span>{splitMode ? 'Partial Total' : 'Total'}</span><span className="text-emerald-600">{formatPrice(splitMode ? splitTotal : activeTotal)}</span></div><div className="grid grid-cols-4 gap-2"><button onClick={() => setShowNote(!showNote)} className="col-span-1 p-3 rounded-xl border border-slate-200 flex justify-center items-center text-slate-600 hover:bg-slate-50"><FileText/></button><button onClick={handlePrint} className="col-span-1 p-3 rounded-xl border border-slate-200 flex justify-center items-center text-slate-600 hover:bg-slate-50"><Printer/></button>{splitMode ? (<button onClick={() => handleComplete(true)} disabled={selectedSplitIndices.length === 0} className="col-span-2 bg-amber-500 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-amber-600 disabled:opacity-50">Pay Partial</button>) : (<button onClick={() => handleComplete(false)} disabled={!activeTicket.items.length} className="col-span-2 bg-emerald-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-emerald-700 shadow-lg shadow-emerald-200 disabled:opacity-50">Pay Full</button>)}</div>{showNote && <textarea className="w-full mt-3 p-2 border rounded-lg text-sm resize-none" rows="2" placeholder="Kitchen/Bar Note..." value={activeTicket.note || ''} onChange={e => updateTicketDetails(activeTicket.id, { note: e.target.value })} />}</div>
+               
+               <div className="flex-1 overflow-y-auto p-2 space-y-2">
+                 {activeTicket.items.length > 0 ? activeTicket.items.map((item, idx) => (
+                   <div key={item.ticketItemId || idx} onClick={() => splitMode && toggleSplitItem(idx)} className={`flex flex-col p-3 rounded-xl border transition-all cursor-pointer ${splitMode ? (selectedSplitIndices.includes(idx) ? 'bg-emerald-50 border-emerald-500 ring-1 ring-emerald-500' : 'opacity-50 border-slate-200') : 'bg-white border-slate-100'}`}>
+                     <div className="flex justify-between items-start">
+                       <div className="flex-1">
+                         <div className="font-bold text-slate-800 text-sm">{item.name}</div>
+                         <div className="text-xs text-slate-500">{formatPrice(item.price)}</div>
+                         {item.selectedModifiers && item.selectedModifiers.map((m, mi) => (<div key={mi} className="text-[10px] text-slate-500">+ {m.name}</div>))}
+                       </div>
+                       {!splitMode && (
+                         <div className="flex items-center gap-2 ml-2">
+                           <button onClick={(e) => {e.stopPropagation(); handleUpdateQuantity(item.ticketItemId, -1)}} className="w-6 h-6 flex items-center justify-center bg-slate-100 rounded hover:bg-slate-200"><Minus size={12}/></button>
+                           <span className="text-sm font-bold w-4 text-center">{item.quantity}</span>
+                           <button onClick={(e) => {e.stopPropagation(); handleUpdateQuantity(item.ticketItemId, 1)}} className="w-6 h-6 flex items-center justify-center bg-emerald-100 text-emerald-700 rounded hover:bg-emerald-200"><Plus size={12}/></button>
+                         </div>
+                       )}
+                     </div>
+                   </div>
+                 )) : <div className="h-full flex flex-col items-center justify-center text-slate-400"><ShoppingCart size={40} /><p>Empty</p></div>}
+               </div>
+
+               <div className="p-4 bg-white border-t border-slate-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-10">
+                 <div className="flex justify-between text-xl font-extrabold text-slate-900 mb-4"><span>{splitMode ? 'Partial Total' : 'Total'}</span><span className="text-emerald-600">{formatPrice(splitMode ? splitTotal : activeTotal)}</span></div>
+                 <div className="grid grid-cols-4 gap-2">
+                   <button onClick={() => setShowNote(!showNote)} className="col-span-1 p-3 rounded-xl border border-slate-200 flex justify-center items-center text-slate-600 hover:bg-slate-50"><FileText/></button>
+                   
+                   {/* BLUE BUTTON: Prints only food/items list for Kitchen */}
+                   <button onClick={handleKitchenPrint} className="col-span-1 p-3 rounded-xl border border-slate-200 flex justify-center items-center text-blue-600 hover:bg-blue-50" title="Kitchen Order">
+                     <Printer/>
+                   </button>
+
+                   {splitMode ? (
+                     <button onClick={() => handleComplete(true)} disabled={selectedSplitIndices.length === 0} className="col-span-2 bg-amber-500 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-amber-600 disabled:opacity-50">Pay Partial</button>
+                   ) : (
+                     /* EMERALD BUTTON: Prints full Receipt THEN closes the table */
+                     <button onClick={handlePayAndPrint} disabled={!activeTicket.items.length} className="col-span-2 bg-emerald-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-emerald-700 shadow-lg disabled:opacity-50">Pay Full</button>
+                   )}
+                 </div>
+                 {showNote && <textarea className="w-full mt-3 p-2 border rounded-lg text-sm resize-none" rows="2" placeholder="Kitchen Note..." value={activeTicket.note || ''} onChange={e => updateTicketDetails(activeTicket.id, { note: e.target.value })} />}
+               </div>
             </div>
-            {modModalItem && (<div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"><div className="bg-white w-full max-w-sm rounded-2xl p-4 shadow-2xl"><h3 className="font-bold text-lg mb-1">{modModalItem.name}</h3><p className="text-slate-500 text-sm mb-4">Select options</p><div className="space-y-2 mb-6 max-h-60 overflow-y-auto">{modModalItem.modifiers.map((mod, i) => { const isSelected = selectedMods.some(m => m.name === mod.name); return (<button key={i} onClick={() => isSelected ? setSelectedMods(p => p.filter(m => m.name !== mod.name)) : setSelectedMods(p => [...p, mod])} className={`w-full flex justify-between p-3 rounded-xl border ${isSelected ? 'bg-emerald-50 border-emerald-500 text-emerald-800' : 'border-slate-200'}`}><span>{mod.name}</span><span>+{formatPrice(mod.price)}</span></button>) })}</div><div className="flex gap-2"><button onClick={() => setModModalItem(null)} className="flex-1 py-3 border rounded-xl font-bold text-slate-600">Cancel</button><button onClick={() => addItemToTicket(modModalItem, selectedMods)} className="flex-1 py-3 bg-emerald-600 text-white rounded-xl font-bold shadow-lg shadow-emerald-200">Add Item</button></div></div></div>)}
+
+            {modModalItem && (<div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"><div className="bg-white w-full max-w-sm rounded-2xl p-4 shadow-2xl"><h3 className="font-bold text-lg mb-1">{modModalItem.name}</h3><div className="flex gap-2"><button onClick={() => setModModalItem(null)} className="flex-1 py-3 border rounded-xl font-bold text-slate-600">Cancel</button><button onClick={() => addItemToTicket(modModalItem, selectedMods)} className="flex-1 py-3 bg-emerald-600 text-white rounded-xl font-bold">Add Item</button></div></div></div>)}
+
+            {/* --- HIDDEN PRINT AREA (WHAT THE PROWILL SEES) --- */}
             <div id="printable-receipt" className="print-only">
-              <div className="receipt-header"><div className="receipt-large">LACASA</div><div>Lounge & Cafe</div><div className="receipt-divider"></div></div>
-              <div className="receipt-line"><span>Date: {new Date().toLocaleDateString()}</span><span>Time: {new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span></div>
-              
-              <div className="receipt-divider"></div>
-              {activeTicket.items.map((item, i) => (<div key={i} style={{marginBottom: '5px'}}><div className="receipt-line receipt-bold"><span>{item.quantity} x {item.name}</span><span>{formatPrice(item.price * item.quantity)}</span></div>{item.selectedModifiers && item.selectedModifiers.map((m, mi) => (<div key={mi} className="receipt-line" style={{fontSize: '10px', color: '#444', paddingLeft: '10px'}}><span>+ {m.name}</span><span>{formatPrice(m.price * item.quantity)}</span></div>))}</div>))}
-              <div className="receipt-divider"></div>
-              <div className="receipt-line receipt-large"><span>TOTAL</span><span>{formatPrice(activeTotal)}</span></div>
-              <div className="receipt-header" style={{marginTop: '15px'}}><div>Have a nice day!</div></div>
+              {printMode === 'kitchen' ? (
+                /* KITCHEN VIEW: Big Table # and Food list only */
+                <div>
+                  <div className="receipt-header">
+                    <div className="receipt-large">KITCHEN ORDER</div>
+                    <div className="receipt-bold" style={{fontSize: '24px', margin: '5px 0'}}>TABLE: {activeTicket.name.replace('Table ', '')}</div>
+                    <div className="receipt-divider"></div>
+                  </div>
+                  <div className="receipt-line">
+                    <span>Date: {new Date().toLocaleDateString()}</span>
+                    <span>Time: {new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
+                  </div>
+                  <div className="receipt-divider"></div>
+                  {activeTicket.items.map((item, i) => (
+                    <div key={i} style={{marginBottom: '10px'}}>
+                      <div className="receipt-line receipt-bold" style={{fontSize: '18px'}}>
+                        <span>{item.quantity} x {item.name}</span>
+                      </div>
+                      {item.selectedModifiers && item.selectedModifiers.map((m, mi) => (
+                        <div key={mi} style={{paddingLeft: '15px', fontSize: '13px'}}>+ {m.name}</div>
+                      ))}
+                    </div>
+                  ))}
+                  {activeTicket.note && (
+                    <div style={{marginTop: '10px', padding: '5px', border: '1px solid black'}}>
+                      <div className="receipt-bold">KITCHEN NOTE:</div>
+                      <div>{activeTicket.note}</div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* CUSTOMER VIEW: Full receipt with Logo and Prices */
+                <div>
+                  <div className="receipt-header">
+                    <div className="receipt-large">LACASA</div>
+                    <div>Lounge & Cafe</div>
+                    <div className="receipt-divider"></div>
+                  </div>
+                  <div className="receipt-line"><span>Date: {new Date().toLocaleDateString()}</span><span>Time: {new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span></div>
+                  <div className="receipt-line"><span>Table: {activeTicket.name.replace('Table ', '')}</span><span># {activeTicket.id.slice(-4)}</span></div>
+                  <div className="receipt-divider"></div>
+                  {activeTicket.items.map((item, i) => (
+                    <div key={i} style={{marginBottom: '5px'}}>
+                      <div className="receipt-line">
+                        <span>{item.quantity} x {item.name}</span>
+                        <span>{formatPrice(item.price * item.quantity)}</span>
+                      </div>
+                      {item.selectedModifiers && item.selectedModifiers.map((m, mi) => (
+                        <div key={mi} className="receipt-line" style={{fontSize: '10px', color: '#444', paddingLeft: '10px'}}>
+                          <span>+ {m.name}</span>
+                          <span>{formatPrice(m.price * item.quantity)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                  <div className="receipt-divider"></div>
+                  <div className="receipt-line receipt-large"><span>TOTAL</span><span>{formatPrice(activeTotal)}</span></div>
+                  <div className="receipt-header" style={{marginTop: '20px'}}><div>Have a nice day!</div></div>
+                </div>
+              )}
             </div>
           </div>
         );
