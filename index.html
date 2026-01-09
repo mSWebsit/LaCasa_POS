@@ -450,8 +450,29 @@
         };
 
         const addItemToTicket = (item, mods) => { 
-          const newItem = { ...item, ticketItemId: Date.now() + Math.random(), quantity: 1, selectedModifiers: mods }; 
-          updateTicketItems(activeTicket.id, [...activeTicket.items, newItem]); 
+          const existingItemIndex = activeTicket.items.findIndex(existing => {
+            const isSameProduct = existing.id === item.id;
+            const isSameMods = JSON.stringify(existing.selectedModifiers || []) === JSON.stringify(mods || []);
+            return isSameProduct && isSameMods;
+          });
+
+          if (existingItemIndex > -1) {
+            const updatedItems = [...activeTicket.items];
+            updatedItems[existingItemIndex] = {
+              ...updatedItems[existingItemIndex],
+              quantity: updatedItems[existingItemIndex].quantity + 1
+            };
+            updateTicketItems(activeTicket.id, updatedItems);
+          } else {
+            const newItem = { 
+              ...item, 
+              ticketItemId: Date.now() + Math.random(), 
+              quantity: 1, 
+              selectedModifiers: mods 
+            }; 
+            updateTicketItems(activeTicket.id, [...activeTicket.items, newItem]); 
+          }
+          
           setModModalItem(null); 
         };
 
