@@ -582,11 +582,11 @@
            {/* --- HIDDEN PRINT AREA (WHAT THE PROWILL SEES) --- */}
             <div id="printable-receipt" className="print-only">
               {printMode === 'kitchen' ? (
-                /* KITCHEN VIEW: Filters only Food and Dessert */
+                /* KITCHEN VIEW: Filters only Food and Dessert + Big Notes */
                 <div>
                   <div className="receipt-header">
                     <div className="receipt-large">KITCHEN ORDER</div>
-                    <div className="receipt-bold" style={{fontSize: '24px', margin: '5px 0'}}>TABLE: {activeTicket.name.replace('Table ', '')}</div>
+                    <div className="receipt-bold" style={{fontSize: '26px', margin: '5px 0'}}>TABLE: {activeTicket.name.replace('Table ', '')}</div>
                     <div className="receipt-divider"></div>
                   </div>
                   <div className="receipt-line">
@@ -595,7 +595,7 @@
                   </div>
                   <div className="receipt-divider"></div>
                   
-                  {/* FILTER LOGIC: Matches only Food and Dessert */}
+                  {/* FILTER LOGIC: Only show Food and Dessert categories */}
                   {activeTicket.items
                     .filter(item => 
                         item.category.toLowerCase() === 'food' || 
@@ -603,31 +603,24 @@
                     )
                     .map((item, i) => (
                     <div key={i} style={{marginBottom: '10px'}}>
-                      <div className="receipt-line receipt-bold" style={{fontSize: '18px'}}>
+                      <div className="receipt-line receipt-bold" style={{fontSize: '20px'}}>
                         <span>{item.quantity} x {item.name}</span>
                       </div>
                       {item.selectedModifiers && item.selectedModifiers.map((m, mi) => (
-                        <div key={mi} style={{paddingLeft: '15px', fontSize: '13px'}}>+ {m.name}</div>
+                        <div key={mi} style={{paddingLeft: '15px', fontSize: '14px'}}>-- {m.name}</div>
                       ))}
                     </div>
                   ))}
 
-                  {/* Show a message if no food was ordered */}
-                  {activeTicket.items.filter(item => 
-                    item.category.toLowerCase() === 'food' || 
-                    item.category.toLowerCase() === 'dessert'
-                  ).length === 0 && (
-                    <div style={{textAlign: 'center', padding: '10px', fontSize: '14px'}}>
-                      (No Food/Dessert Items)
+                  {/* KITCHEN NOTES SECTION - Made extra bold and large */}
+                  {activeTicket.note && (
+                    <div style={{marginTop: '15px', padding: '8px', border: '2px solid black', backgroundColor: '#eee'}}>
+                      <div className="receipt-bold" style={{fontSize: '18px', borderBottom: '1px solid black', marginBottom: '5px'}}>KITCHEN NOTE:</div>
+                      <div style={{fontSize: '18px', fontWeight: 'bold', textTransform: 'uppercase'}}>{activeTicket.note}</div>
                     </div>
                   )}
 
-                  {activeTicket.note && (
-                    <div style={{marginTop: '10px', padding: '5px', border: '1px solid black'}}>
-                      <div className="receipt-bold">KITCHEN NOTE:</div>
-                      <div>{activeTicket.note}</div>
-                    </div>
-                  )}
+                  <div className="receipt-divider" style={{marginTop: '15px'}}></div>
                 </div>
               ) : (
                 /* CUSTOMER VIEW: Always shows everything (Food + Drinks + Dessert) */
@@ -663,7 +656,6 @@
           </div>
         );
       };
-
       // --- SALES PAGE (UNCHANGED) ---
       const SalesPage = () => {
         const { salesHistory, formatPrice, convertPrice } = useData();
