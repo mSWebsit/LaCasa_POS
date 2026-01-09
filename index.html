@@ -369,7 +369,7 @@
         );
       };
 
-      // --- TABLES PAGE (UNCHANGED) ---
+      // --- TABLES PAGE ---
       const TablesPage = ({ setActiveTicketId, setCurrentView }) => {
           const { tickets, createTicket, formatPrice, tableConfig, updateTableConfig } = useData();
           const [filter, setFilter] = useState('all'); // all, available, occupied
@@ -416,7 +416,6 @@
         const [splitMode, setSplitMode] = useState(false); 
         const [selectedSplitIndices, setSelectedSplitIndices] = useState([]);
         
-        // This state controls what the printer sees
         const [printMode, setPrintMode] = useState('receipt'); 
 
         const activeTicket = tickets.find(t => t.id === activeTicketId);
@@ -562,7 +561,7 @@
                  <div className="grid grid-cols-4 gap-2">
                    <button onClick={() => setShowNote(!showNote)} className="col-span-1 p-3 rounded-xl border border-slate-200 flex justify-center items-center text-slate-600 hover:bg-slate-50"><FileText/></button>
                    
-                   {/* BLUE BUTTON: Prints only food/items list for Kitchen */}
+                   {/* PRINT BUTTON: Prints only food/items list for Kitchen */}
                    <button onClick={handleKitchenPrint} className="col-span-1 p-3 rounded-xl border border-slate-200 flex justify-center items-center text-blue-600 hover:bg-blue-50" title="Kitchen Order">
                      <Printer/>
                    </button>
@@ -570,7 +569,7 @@
                    {splitMode ? (
                      <button onClick={() => handleComplete(true)} disabled={selectedSplitIndices.length === 0} className="col-span-2 bg-amber-500 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-amber-600 disabled:opacity-50">Pay Partial</button>
                    ) : (
-                     /* EMERALD BUTTON: Prints full Receipt THEN closes the table */
+                     /* PAY BUTTON: Prints full Receipt THEN closes the table */
                      <button onClick={handlePayAndPrint} disabled={!activeTicket.items.length} className="col-span-2 bg-emerald-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-emerald-700 shadow-lg disabled:opacity-50">Pay Full</button>
                    )}
                  </div>
@@ -580,10 +579,10 @@
 
             {modModalItem && (<div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"><div className="bg-white w-full max-w-sm rounded-2xl p-4 shadow-2xl"><h3 className="font-bold text-lg mb-1">{modModalItem.name}</h3><div className="flex gap-2"><button onClick={() => setModModalItem(null)} className="flex-1 py-3 border rounded-xl font-bold text-slate-600">Cancel</button><button onClick={() => addItemToTicket(modModalItem, selectedMods)} className="flex-1 py-3 bg-emerald-600 text-white rounded-xl font-bold">Add Item</button></div></div></div>)}
 
-            {/* --- HIDDEN PRINT AREA (WHAT THE PROWILL SEES) --- */}
+           {/* --- HIDDEN PRINT AREA (WHAT THE PROWILL SEES) --- */}
             <div id="printable-receipt" className="print-only">
               {printMode === 'kitchen' ? (
-                /* KITCHEN VIEW: Big Table # and Food list only */
+                /* KITCHEN VIEW: Filters only Food and Dessert */
                 <div>
                   <div className="receipt-header">
                     <div className="receipt-large">KITCHEN ORDER</div>
@@ -595,7 +594,14 @@
                     <span>Time: {new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
                   </div>
                   <div className="receipt-divider"></div>
-                  {activeTicket.items.map((item, i) => (
+                  
+                  {/* FILTER LOGIC: Matches only Food and Dessert */}
+                  {activeTicket.items
+                    .filter(item => 
+                        item.category.toLowerCase() === 'food' || 
+                        item.category.toLowerCase() === 'dessert'
+                    )
+                    .map((item, i) => (
                     <div key={i} style={{marginBottom: '10px'}}>
                       <div className="receipt-line receipt-bold" style={{fontSize: '18px'}}>
                         <span>{item.quantity} x {item.name}</span>
@@ -605,6 +611,17 @@
                       ))}
                     </div>
                   ))}
+
+                  {/* Show a message if no food was ordered */}
+                  {activeTicket.items.filter(item => 
+                    item.category.toLowerCase() === 'food' || 
+                    item.category.toLowerCase() === 'dessert'
+                  ).length === 0 && (
+                    <div style={{textAlign: 'center', padding: '10px', fontSize: '14px'}}>
+                      (No Food/Dessert Items)
+                    </div>
+                  )}
+
                   {activeTicket.note && (
                     <div style={{marginTop: '10px', padding: '5px', border: '1px solid black'}}>
                       <div className="receipt-bold">KITCHEN NOTE:</div>
@@ -613,7 +630,7 @@
                   )}
                 </div>
               ) : (
-                /* CUSTOMER VIEW: Full receipt with Logo and Prices */
+                /* CUSTOMER VIEW: Always shows everything (Food + Drinks + Dessert) */
                 <div>
                   <div className="receipt-header">
                     <div className="receipt-large">LACASA</div>
