@@ -8,7 +8,6 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-      
       body { font-family: 'Inter', sans-serif; }
       ::-webkit-scrollbar { width: 6px; height: 6px; }
       ::-webkit-scrollbar-track { background: #f1f5f9; }
@@ -27,27 +26,6 @@
         body * { visibility: hidden; }
         #root, body, html { overflow: visible !important; height: auto !important; background: white; }
         .print-only, .print-only * { visibility: visible !important; }
-        /* The Stem */
-        .receipt-stem-container {
-          border-left: 2px dashed black; /* This is the stem */
-          margin-left: 8px;
-          padding-left: 12px;
-          position: relative;
-        }
-
-        /* The Flower Head */
-        .flower-head-main {
-          font-size: 30px;
-          margin-left: -6px; /* Centers head over the stem line */
-          line-height: 1;
-        }
-
-        /* Small leaves that appear on the stem */
-        .stem-leaf {
-            font-size: 14px;
-            margin-left: -20px;
-            position: absolute;
-        }
         .print-only { 
             position: absolute; 
             left: 0; 
@@ -60,14 +38,13 @@
             color: black;
             display: block !important;
             overflow: hidden; 
-          
+        }
         .no-print { display: none !important; }
         .receipt-line { display: flex; justify-content: space-between; width:100%; margin-bottom: 2px; }
         .receipt-divider { border-bottom: 1px dashed black; margin: 5px 0; }
         .receipt-header { text-align: center; margin-bottom: 10px; }
         .receipt-bold { font-weight: bold; }
         .receipt-large { font-size: 16px; font-weight: bold; }
-      }
       }
     </style>
     <!-- Import Map -->
@@ -461,104 +438,15 @@
                </div>
             </div>
 
-              {/* --- HIDDEN PRINT AREA --- */}
             <div id="printable-receipt" className="print-only">
               {printMode === 'kitchen' ? (
-                /* KITCHEN VIEW (No Flowers) */
                 <div>
-                  <div className="receipt-header">
-                    <div className="receipt-large">KITCHEN ORDER</div>
-                    <div className="receipt-bold" style={{fontSize: '26px', margin: '5px 0'}}>TABLE: {activeTicket.name.replace('Table ', '')}</div>
-                    <div className="receipt-divider"></div>
-                  </div>
-                  <div className="receipt-line">
-                    <span>Date: {new Date().toLocaleDateString()}</span>
-                    <span>Time: {new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
-                  </div>
-                  <div className="receipt-divider"></div>
-                  {activeTicket.items
-                    .filter(item => 
-                        item.category.toLowerCase() === 'food' || 
-                        item.category.toLowerCase() === 'dessert'
-                    )
-                    .map((item, i) => (
-                    <div key={i} style={{marginBottom: '10px'}}>
-                      <div className="receipt-line receipt-bold" style={{fontSize: '20px'}}>
-                        <span>{item.quantity} x {item.name}</span>
-                      </div>
-                      {item.selectedModifiers && item.selectedModifiers.map((m, mi) => (
-                        <div key={mi} style={{paddingLeft: '15px', fontSize: '14px'}}>-- {m.name}</div>
-                      ))}
-                    </div>
+                  <div className="receipt-header"><div className="receipt-large">KITCHEN ORDER</div><div className="receipt-bold" style={{fontSize: '26px', margin: '5px 0'}}>TABLE: {activeTicket.name.replace('Table ', '')}</div><div className="receipt-divider"></div></div>
+                  {activeTicket.items.filter(item => item.category.toLowerCase() === 'food' || item.category.toLowerCase() === 'dessert').map((item, i) => (
+                    <div key={i} style={{marginBottom: '10px'}}><div className="receipt-line receipt-bold" style={{fontSize: '20px'}}><span>{item.quantity} x {item.name}</span></div>{item.selectedModifiers && item.selectedModifiers.map((m, mi) => (<div key={mi} style={{paddingLeft: '15px', fontSize: '14px'}}>-- {m.name}</div>))}</div>
                   ))}
-                  {activeTicket.note && (
-                    <div style={{marginTop: '15px', padding: '8px', border: '2px solid black'}}>
-                      <div className="receipt-bold" style={{fontSize: '18px'}}>KITCHEN NOTE:</div>
-                      <div style={{fontSize: '18px', fontWeight: 'bold'}}>{activeTicket.note}</div>
-                    </div>
-                  )}
+                  {activeTicket.note && (<div style={{marginTop: '15px', padding: '8px', border: '2px solid black'}}><div className="receipt-bold" style={{fontSize: '18px'}}>NOTE:</div><div style={{fontSize: '18px', fontWeight: 'bold'}}>{activeTicket.note}</div></div>)}
                 </div>
-              ) : (
-                /* CUSTOMER VIEW WITH STEM GOING DOWN */
-                <div style={{paddingLeft: '10px'}}>
-                  {/* Flower Head */}
-                  <div className="flower-head-main">🌻</div>
-                  
-                  {/* The Stem Container (The line starts here) */}
-                  <div className="receipt-stem-container">
-                    
-                    <div className="receipt-header" style={{textAlign: 'left', marginBottom: '20px'}}>
-                      <div className="receipt-large" style={{fontSize: '24px'}}>LACASA</div>
-                      <div style={{fontSize: '12px', letterSpacing: '2px'}}>LOUNGE & CAFE</div>
-                    </div>
-
-                    <div className="receipt-line" style={{fontSize: '10px'}}>
-                      <span>Date: {new Date().toLocaleDateString()}</span>
-                      <span>Time: {new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
-                    </div>
-                    <div className="receipt-line" style={{fontSize: '10px', marginBottom: '10px'}}>
-                      <span>Table: {activeTicket.name.replace('Table ', '')}</span>
-                      <span>ID: {activeTicket.id.slice(-4)}</span>
-                    </div>
-
-                    <div className="receipt-divider"></div>
-
-                    {/* Order Items */}
-                    {activeTicket.items.map((item, i) => (
-                      <div key={i} style={{marginBottom: '8px', position: 'relative'}}>
-                        {/* Add a leaf every 3rd item */}
-                        {i % 3 === 0 && <span className="stem-leaf">🍃</span>}
-                        
-                        <div className="receipt-line">
-                          <span style={{fontWeight: 'bold'}}>{item.quantity} x {item.name}</span>
-                          <span>{formatPrice(item.price * item.quantity)}</span>
-                        </div>
-                        {item.selectedModifiers && item.selectedModifiers.map((m, mi) => (
-                          <div key={mi} className="receipt-line" style={{fontSize: '10px', paddingLeft: '10px', opacity: 0.8}}>
-                            <span>+ {m.name}</span>
-                            <span>{formatPrice(m.price * item.quantity)}</span>
-                          </div>
-                        ))}
-                      </div>
-                    ))}
-
-                    <div className="receipt-divider"></div>
-                    
-                    <div className="receipt-line receipt-large" style={{fontSize: '18px', marginTop: '10px'}}>
-                      <span>TOTAL</span>
-                      <span>{formatPrice(activeTotal)}</span>
-                    </div>
-
-                    <div style={{marginTop: '30px', textAlign: 'center'}}>
-                      <div className="receipt-bold">Thank You!</div>
-                      <div style={{fontSize: '10px'}}>Visit us again</div>
-                    </div>
-                  </div>
-                  {/* Root/End of Stem */}
-                  <div style={{marginLeft: '2px', fontSize: '20px', marginTop: '-5px'}}>🌱</div>
-                </div>
-              )}
-            </div>
               ) : (
                 <div>
                   <div className="receipt-header"><div className="receipt-large">LACASA</div><div className="receipt-divider"></div></div>
@@ -569,6 +457,7 @@
                   <div className="receipt-line receipt-large"><span>TOTAL</span><span>{formatPrice(activeTotal)}</span></div>
                 </div>
               )}
+            </div>
           </div>
         );
       };
