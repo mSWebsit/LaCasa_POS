@@ -8,6 +8,19 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
+      .receipt-floral {
+      text-align: center;
+      font-size: 18px;
+      margin: 5px 0;
+      color: black;
+      letter-spacing: 4px;
+      }
+      .floral-divider {
+      text-align: center;
+      font-size: 10px;
+      margin: 2px 0;
+      opacity: 0.8;
+      }
       body { font-family: 'Inter', sans-serif; }
       ::-webkit-scrollbar { width: 6px; height: 6px; }
       ::-webkit-scrollbar-track { background: #f1f5f9; }
@@ -438,15 +451,95 @@
                </div>
             </div>
 
+             {/* --- HIDDEN PRINT AREA --- */}
             <div id="printable-receipt" className="print-only">
               {printMode === 'kitchen' ? (
+                /* KITCHEN VIEW */
                 <div>
-                  <div className="receipt-header"><div className="receipt-large">KITCHEN ORDER</div><div className="receipt-bold" style={{fontSize: '26px', margin: '5px 0'}}>TABLE: {activeTicket.name.replace('Table ', '')}</div><div className="receipt-divider"></div></div>
-                  {activeTicket.items.filter(item => item.category.toLowerCase() === 'food' || item.category.toLowerCase() === 'dessert').map((item, i) => (
-                    <div key={i} style={{marginBottom: '10px'}}><div className="receipt-line receipt-bold" style={{fontSize: '20px'}}><span>{item.quantity} x {item.name}</span></div>{item.selectedModifiers && item.selectedModifiers.map((m, mi) => (<div key={mi} style={{paddingLeft: '15px', fontSize: '14px'}}>-- {m.name}</div>))}</div>
+                  <div className="receipt-header">
+                    <div className="receipt-large">KITCHEN ORDER</div>
+                    <div className="receipt-bold" style={{fontSize: '26px', margin: '5px 0'}}>TABLE: {activeTicket.name.replace('Table ', '')}</div>
+                    <div className="receipt-divider"></div>
+                  </div>
+                  <div className="receipt-line">
+                    <span>Date: {new Date().toLocaleDateString()}</span>
+                    <span>Time: {new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
+                  </div>
+                  <div className="receipt-divider"></div>
+                  
+                  {activeTicket.items
+                    .filter(item => 
+                        item.category.toLowerCase() === 'food' || 
+                        item.category.toLowerCase() === 'dessert'
+                    )
+                    .map((item, i) => (
+                    <div key={i} style={{marginBottom: '10px'}}>
+                      <div className="receipt-line receipt-bold" style={{fontSize: '20px'}}>
+                        <span>{item.quantity} x {item.name}</span>
+                      </div>
+                      {item.selectedModifiers && item.selectedModifiers.map((m, mi) => (
+                        <div key={mi} style={{paddingLeft: '15px', fontSize: '14px'}}>-- {m.name}</div>
+                      ))}
+                    </div>
                   ))}
-                  {activeTicket.note && (<div style={{marginTop: '15px', padding: '8px', border: '2px solid black'}}><div className="receipt-bold" style={{fontSize: '18px'}}>NOTE:</div><div style={{fontSize: '18px', fontWeight: 'bold'}}>{activeTicket.note}</div></div>)}
+
+                  {activeTicket.note && (
+                    <div style={{marginTop: '15px', padding: '8px', border: '2px solid black'}}>
+                      <div className="receipt-bold" style={{fontSize: '18px'}}>KITCHEN NOTE:</div>
+                      <div style={{fontSize: '18px', fontWeight: 'bold'}}>{activeTicket.note}</div>
+                    </div>
+                  )}
                 </div>
+              ) : (
+                /* CUSTOMER VIEW WITH FLOWERS */
+                <div>
+                  <div className="receipt-floral">✿ ❀ ❁ ❀ ✿</div>
+                  <div className="receipt-header">
+                    <div className="receipt-large" style={{fontSize: '22px'}}>LACASA</div>
+                    <div style={{fontSize: '10px', marginTop: '-5px'}}>Lounge & Cafe</div>
+                    <div className="floral-divider">✽ ✽ ✽ ✽ ✽ ✽ ✽ ✽ ✽ ✽ ✽ ✽ ✽ ✽</div>
+                  </div>
+                  
+                  <div className="receipt-line">
+                    <span>Date: {new Date().toLocaleDateString()}</span>
+                    <span>Table: {activeTicket.name.replace('Table ', '')}</span>
+                  </div>
+                  <div className="receipt-line">
+                    <span>Time: {new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
+                    <span>Tkt: #{activeTicket.id.slice(-4)}</span>
+                  </div>
+                  
+                  <div className="receipt-divider"></div>
+                  
+                  {activeTicket.items.map((item, i) => (
+                    <div key={i} style={{marginBottom: '5px'}}>
+                      <div className="receipt-line">
+                        <span>{item.quantity} x {item.name}</span>
+                        <span>{formatPrice(item.price * item.quantity)}</span>
+                      </div>
+                      {item.selectedModifiers && item.selectedModifiers.map((m, mi) => (
+                        <div key={mi} className="receipt-line" style={{fontSize: '10px', paddingLeft: '10px'}}>
+                          <span>+ {m.name}</span>
+                          <span>{formatPrice(m.price * item.quantity)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                  
+                  <div className="receipt-divider"></div>
+                  <div className="receipt-line receipt-large">
+                    <span>TOTAL</span>
+                    <span>{formatPrice(activeTotal)}</span>
+                  </div>
+                  
+                  <div className="receipt-header" style={{marginTop: '20px'}}>
+                    <div className="floral-divider">✽ ✽ ✽ ✽ ✽ ✽ ✽ ✽ ✽ ✽ ✽ ✽ ✽ ✽</div>
+                    <div className="receipt-bold">Thank You!</div>
+                    <div className="receipt-floral" style={{fontSize: '14px', marginTop: '5px'}}>❀ ❁ ❀</div>
+                  </div>
+                </div>
+              )}
+            </div>
               ) : (
                 <div>
                   <div className="receipt-header"><div className="receipt-large">LACASA</div><div className="receipt-divider"></div></div>
