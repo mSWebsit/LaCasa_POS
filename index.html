@@ -22,10 +22,15 @@
       @media print {
         @page { margin: 0; size: 80mm auto; }
         body * { visibility: hidden; }
-        #root, body, html { overflow: visible !important; height: auto !important; background: white; }
+        #root, body, html { 
+            overflow: visible !important; 
+            height: auto !important; 
+            background: white !important; 
+        }
         .print-only, .print-only * { visibility: visible !important; }
         .print-only { 
-            position: absolute; left: 0; top: 0; width: 74mm; 
+            position: absolute; left: 0; top: 0; width: 72mm; 
+            height: auto !important;
             padding: 4px; font-family: 'Courier New', monospace;
             font-size: 13px; color: black; display: block !important;
         }
@@ -93,7 +98,28 @@
       const db = getFirestore(app);
       const EXCHANGE_RATE = 90000;
 
-      // --- DATA PROVIDER ---
+      // --- COMPONENTS (LOGIN DEFINED FIRST) ---
+      const LoginPage = () => {
+        const [email, setEmail] = useState('');
+        const [password, setPassword] = useState('');
+        const handleLogin = async (e) => { 
+          e.preventDefault(); 
+          try { await signInWithEmailAndPassword(auth, email, password); } 
+          catch (err) { alert("Invalid login credentials"); } 
+        };
+        return (
+          <div className="h-screen flex items-center justify-center bg-slate-100">
+            <form onSubmit={handleLogin} className="bg-white p-8 rounded-2xl shadow-xl w-80 space-y-4 border border-slate-200">
+              <div className="flex justify-center"><div className="w-12 h-12 bg-emerald-600 rounded-xl flex items-center justify-center text-white font-bold text-xl">L</div></div>
+              <h2 className="text-xl font-bold text-center">LACASA POS</h2>
+              <input type="email" placeholder="Email" className="w-full border p-2 rounded outline-none focus:ring-2 focus:ring-emerald-500" onChange={e => setEmail(e.target.value)} />
+              <input type="password" placeholder="Password" className="w-full border p-2 rounded outline-none focus:ring-2 focus:ring-emerald-500" onChange={e => setPassword(e.target.value)} />
+              <button className="w-full bg-emerald-600 text-white py-2 rounded font-bold hover:bg-emerald-700 transition-colors">Login</button>
+            </form>
+          </div>
+        );
+      };
+
       const DataContext = createContext(undefined);
       const DataProvider = ({ children }) => {
         const [user, setUser] = useState(null);
@@ -164,23 +190,6 @@
 
       const useData = () => useContext(DataContext);
 
-      // --- LOGIN PAGE ---
-      const LoginPage = () => {
-        const [email, setEmail] = useState('');
-        const [password, setPassword] = useState('');
-        const handleLogin = async (e) => { e.preventDefault(); try { await signInWithEmailAndPassword(auth, email, password); } catch (err) { alert("Invalid login"); } };
-        return (
-          <div className="h-screen flex items-center justify-center bg-slate-100">
-            <form onSubmit={handleLogin} className="bg-white p-8 rounded-2xl shadow-xl w-80 space-y-4">
-              <h2 className="text-2xl font-bold text-center">LACASA POS</h2>
-              <input type="email" placeholder="Email" className="w-full border p-2 rounded" onChange={e => setEmail(e.target.value)} />
-              <input type="password" placeholder="Password" className="w-full border p-2 rounded" onChange={e => setPassword(e.target.value)} />
-              <button className="w-full bg-emerald-600 text-white py-2 rounded font-bold">Login</button>
-            </form>
-          </div>
-        );
-      };
-
       // --- TABLES PAGE ---
       const TablesPage = ({ setActiveTicketId, setCurrentView }) => {
         const { tickets, createTicket, formatPrice, tableConfig } = useData();
@@ -188,7 +197,7 @@
           const t = tickets.find(t => t.tableId === id);
           return (
             <button key={id} onClick={async () => { const tid = await createTicket(id); setActiveTicketId(tid); setCurrentView('pos'); }} 
-              className={`h-24 rounded-xl border-2 flex flex-col items-center justify-center ${t ? 'bg-red-50 border-red-200 text-red-700' : 'bg-white border-slate-100'}`}>
+              className={`h-24 rounded-xl border-2 flex flex-col items-center justify-center transition-all ${t ? 'bg-red-50 border-red-200 text-red-700' : 'bg-white border-slate-100 hover:border-emerald-200'}`}>
               <span className="text-xl font-bold">T{id}</span>
               {t && <span className="text-xs font-bold">{formatPrice(t.items.reduce((s,i) => s + i.price*i.quantity, 0))}</span>}
             </button>
@@ -227,15 +236,15 @@
         const handleKitchenPrint = () => { setPrintMode('kitchen'); setTimeout(() => { window.print(); }, 50); };
         const handlePayPrint = () => { setPrintMode('receipt'); setTimeout(() => { window.print(); completeTicket(activeTicket.id); setCurrentView('tables'); }, 50); };
 
-        const total = activeTicket.items.reduce((s, i) => s + (i.price * i.quantity), 0);
+        const totalValue = activeTicket.items.reduce((s, i) => s + (i.price * i.quantity), 0);
 
         return (
           <div className="flex h-full relative">
             <div className="flex-1 p-4 overflow-y-auto no-scrollbar pb-24 md:pb-4">
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {menuItems.map(item => (
-                  <button key={item.id} onClick={() => addItem(item)} className="bg-white p-4 rounded-xl border text-left flex flex-col justify-between h-32 hover:border-emerald-500">
-                    <span className="font-bold text-sm leading-tight">{item.name}</span>
+                  <button key={item.id} onClick={() => addItem(item)} className="bg-white p-4 rounded-xl border text-left flex flex-col justify-between h-32 hover:border-emerald-500 transition-all shadow-sm">
+                    <span className="font-bold text-sm leading-tight line-clamp-2">{item.name}</span>
                     <span className="text-emerald-600 font-bold">{formatPrice(item.price)}</span>
                   </button>
                 ))}
@@ -243,23 +252,26 @@
             </div>
 
             <div className="w-full md:w-80 lg:w-96 bg-white border-l flex flex-col h-full shadow-xl">
-              <div className="p-4 bg-emerald-600 text-white font-bold">{activeTicket.name}</div>
+              <div className="p-4 bg-emerald-600 text-white font-bold text-center">{activeTicket.name}</div>
               <div className="flex-1 overflow-y-auto p-2 no-scrollbar">
                 {activeTicket.items.map((item, i) => (
                   <div key={i} className="flex justify-between items-center p-3 border-b border-slate-50">
-                    <div className="flex-1"><div className="font-bold text-sm">{item.name}</div><div className="text-xs text-slate-400">x{item.quantity}</div></div>
+                    <div className="flex-1">
+                        <div className="font-bold text-sm">{item.name}</div>
+                        <div className="text-xs text-slate-400">x{item.quantity}</div>
+                    </div>
                     <div className="font-bold text-sm">{formatPrice(item.price * item.quantity)}</div>
                   </div>
                 ))}
               </div>
               <div className="p-4 border-t space-y-4">
-                <div className="flex justify-between text-xl font-black"><span>Total</span><span className="text-emerald-600">{formatPrice(total)}</span></div>
+                <div className="flex justify-between text-xl font-black"><span>Total</span><span className="text-emerald-600">{formatPrice(totalValue)}</span></div>
                 <div className="grid grid-cols-4 gap-2">
-                   <button onClick={() => setShowNote(!showNote)} className="p-3 border rounded-xl"><FileText/></button>
-                   <button onClick={handleKitchenPrint} className="p-3 border rounded-xl text-blue-600"><Printer/></button>
-                   <button onClick={handlePayPrint} className="col-span-2 bg-emerald-600 text-white rounded-xl font-bold">Pay Full</button>
+                   <button onClick={() => setShowNote(!showNote)} className="p-3 border rounded-xl hover:bg-slate-50"><FileText/></button>
+                   <button onClick={handleKitchenPrint} className="p-3 border rounded-xl text-blue-600 hover:bg-blue-50"><Printer/></button>
+                   <button onClick={handlePayPrint} className="col-span-2 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700">Pay Full</button>
                 </div>
-                {showNote && <textarea className="w-full p-2 border rounded" placeholder="Kitchen Note..." value={activeTicket.note} onChange={e => updateTicketDetails(activeTicket.id, {note: e.target.value})} />}
+                {showNote && <textarea className="w-full p-2 border rounded resize-none" placeholder="Kitchen Note..." value={activeTicket.note} onChange={e => updateTicketDetails(activeTicket.id, {note: e.target.value})} />}
               </div>
             </div>
 
@@ -305,7 +317,7 @@
                       </div>
                     ))}
                     <div className="receipt-divider"></div>
-                    <div className="receipt-line receipt-large"><span>TOTAL</span><span>{formatPrice(total)}</span></div>
+                    <div className="receipt-line receipt-large"><span>TOTAL</span><span>{formatPrice(totalValue)}</span></div>
                     <div style={{marginTop: '20px', textAlign: 'center', paddingRight: '20px'}}>
                       <div className="receipt-bold">Thank You!</div>
                       <div style={{fontSize: '10px'}}>Visit us again</div>
@@ -330,20 +342,20 @@
           if (timeframe === 'daily') {
             for(let i=0; i<24; i++) map.set(i.toString().padStart(2, '0') + ':00', 0);
             salesHistory.filter(s => new Date(s.timestamp).toDateString() === now.toDateString())
-              .forEach(s => { const h = new Date(s.timestamp).getHours().toString().padStart(2, '0') + ':00'; map.set(h, map.get(h) + s.total); });
+              .forEach(s => { const h = new Date(s.timestamp).getHours().toString().padStart(2, '0') + ':00'; map.set(h, (map.get(h) || 0) + s.total); });
           } else if (timeframe === 'weekly') {
             const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
             days.forEach(d => map.set(d, 0));
             salesHistory.forEach(s => { 
               const d = new Date(s.timestamp);
               const idx = d.getDay() === 0 ? 6 : d.getDay() - 1;
-              map.set(days[idx], map.get(days[idx]) + s.total);
+              map.set(days[idx], (map.get(days[idx]) || 0) + s.total);
             });
           } else {
             const last = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
             for(let i=1; i<=last; i++) map.set(`Day ${i.toString().padStart(2, '0')}`, 0);
             salesHistory.filter(s => new Date(s.timestamp).getMonth() === now.getMonth())
-              .forEach(s => { const k = `Day ${new Date(s.timestamp).getDate().toString().padStart(2, '0')}`; if(map.has(k)) map.set(k, map.get(k) + s.total); });
+              .forEach(s => { const k = `Day ${new Date(s.timestamp).getDate().toString().padStart(2, '0')}`; if(map.has(k)) map.set(k, (map.get(k) || 0) + s.total); });
           }
           return Array.from(map.entries()).map(([name, value]) => ({ name, value }));
         }, [salesHistory, timeframe]);
@@ -354,14 +366,14 @@
               <h1 className="text-2xl font-bold">Sales Dashboard</h1>
               <div className="flex bg-white border rounded-lg p-1">
                 {['daily', 'weekly', 'monthly'].map(t => (
-                  <button key={t} onClick={() => setTimeframe(t)} className={`px-4 py-1.5 rounded-md text-sm font-bold capitalize ${timeframe === t ? 'bg-emerald-600 text-white' : 'text-slate-500'}`}>{t}</button>
+                  <button key={t} onClick={() => setTimeframe(t)} className={`px-4 py-1.5 rounded-md text-sm font-bold capitalize transition-all ${timeframe === t ? 'bg-emerald-600 text-white shadow' : 'text-slate-500'}`}>{t}</button>
                 ))}
               </div>
             </div>
             
             <div className="bg-white p-6 rounded-2xl border shadow-sm mb-8 h-80">
                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={dataMap}><CartesianGrid strokeDasharray="3 3" vertical={false}/><XAxis dataKey="name" tick={{fontSize: 10}} interval={timeframe==='monthly'?2:0}/><YAxis tick={{fontSize: 10}}/><Tooltip/><Bar dataKey="value" fill="#10b981" radius={[4,4,0,0]}/></BarChart>
+                  <BarChart data={dataMap}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9"/><XAxis dataKey="name" tick={{fontSize: 10}} interval={timeframe==='monthly'?2:0}/><YAxis tick={{fontSize: 10}}/><Tooltip/><Bar dataKey="value" fill="#10b981" radius={[4,4,0,0]}/></BarChart>
                </ResponsiveContainer>
             </div>
 
@@ -383,21 +395,20 @@
         );
       };
 
-      // --- CRUDS (STOCK / INVENTORY) ---
       const StockPage = () => {
-        const { stockItems, updateStockItem, formatPrice } = useData();
+        const { stockItems, updateStockItem } = useData();
         return (
           <div className="p-6 h-full overflow-y-auto no-scrollbar">
             <h1 className="text-2xl font-bold mb-6">Stock</h1>
             <div className="bg-white border rounded-xl overflow-hidden shadow-sm">
               <table className="w-full text-left">
-                <thead className="bg-slate-50 border-b text-slate-500"><tr><th className="px-4 py-3">Item</th><th className="px-4 py-3">Stock</th><th className="px-4 py-3">Actions</th></tr></thead>
+                <thead className="bg-slate-50 border-b text-slate-500"><tr><th className="px-4 py-3">Item</th><th className="px-4 py-3">Stock</th><th className="px-4 py-3 text-right">Actions</th></tr></thead>
                 <tbody className="divide-y">
                   {stockItems.map(item => (
                     <tr key={item.id}>
                       <td className="px-4 py-3 font-medium">{item.name}</td>
                       <td className="px-4 py-3 font-black text-lg">{item.stock}</td>
-                      <td className="px-4 py-3 flex gap-2"><button onClick={() => updateStockItem({...item, stock: item.stock + 1})} className="p-1 border rounded"><Plus size={16}/></button></td>
+                      <td className="px-4 py-3 text-right"><button onClick={() => updateStockItem({...item, stock: item.stock + 1})} className="p-2 border rounded text-emerald-600 hover:bg-emerald-50"><Plus size={16}/></button></td>
                     </tr>
                   ))}
                 </tbody>
@@ -408,16 +419,16 @@
       };
 
       const InventoryPage = () => {
-        const { menuItems, addMenuItem, formatPrice, categories } = useData();
+        const { menuItems, addMenuItem, formatPrice } = useData();
         const [isModalOpen, setIsModalOpen] = useState(false);
         const [formData, setFormData] = useState({ name: '', price: 0, category: 'Food' });
         const handleSubmit = (e) => { e.preventDefault(); addMenuItem(formData); setIsModalOpen(false); };
         return (
           <div className="p-6 h-full overflow-y-auto no-scrollbar">
-            <div className="flex justify-between items-center mb-6"><h1 className="text-2xl font-bold">Menu Items</h1><button onClick={() => setIsModalOpen(true)} className="bg-emerald-600 text-white px-4 py-2 rounded font-bold">Add Item</button></div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="flex justify-between items-center mb-6"><h1 className="text-2xl font-bold">Menu</h1><button onClick={() => setIsModalOpen(true)} className="bg-emerald-600 text-white px-4 py-2 rounded font-bold hover:bg-emerald-700 transition-all">Add Item</button></div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {menuItems.map(item => (
-                <div key={item.id} className="bg-white p-4 rounded-xl border flex justify-between items-center shadow-sm">
+                <div key={item.id} className="bg-white p-4 rounded-xl border flex justify-between items-center shadow-sm hover:border-emerald-500">
                   <div><h3 className="font-bold">{item.name}</h3><p className="text-xs text-slate-400 uppercase">{item.category}</p></div>
                   <span className="font-bold text-emerald-600">{formatPrice(item.price)}</span>
                 </div>
@@ -426,8 +437,8 @@
             {isModalOpen && (<div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
               <form onSubmit={handleSubmit} className="bg-white p-6 rounded-2xl shadow-xl w-full max-w-md space-y-4">
                 <h3 className="text-lg font-bold">New Menu Item</h3>
-                <input type="text" placeholder="Name" className="w-full border p-2 rounded" onChange={e => setFormData({...formData, name: e.target.value})} />
-                <input type="number" placeholder="Price (USD)" className="w-full border p-2 rounded" onChange={e => setFormData({...formData, price: parseFloat(e.target.value)})} />
+                <input type="text" placeholder="Name" className="w-full border p-2 rounded" required onChange={e => setFormData({...formData, name: e.target.value})} />
+                <input type="number" placeholder="Price (USD)" step="0.01" className="w-full border p-2 rounded" required onChange={e => setFormData({...formData, price: parseFloat(e.target.value)})} />
                 <select className="w-full border p-2 rounded" onChange={e => setFormData({...formData, category: e.target.value})}>
                   <option value="Food">Food</option><option value="Dessert">Dessert</option><option value="Drinks">Drinks</option>
                 </select>
@@ -438,7 +449,35 @@
         );
       };
 
-      // --- APP ROOT ---
+      const Sidebar = ({ currentView, setCurrentView, isMobileMenuOpen, setIsMobileMenuOpen }) => {
+        const { currency, toggleCurrency, logout } = useData();
+        const NavItem = ({ view, icon: Icon, label }) => (
+          <button onClick={() => { setCurrentView(view); setIsMobileMenuOpen(false); }} className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all w-full ${currentView === view ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-100'}`}>
+            <Icon size={24} /> <span className="hidden lg:block font-medium">{label}</span>
+          </button>
+        );
+        return (
+          <>
+            <aside className="no-print hidden md:flex flex-col w-20 lg:w-64 bg-white border-r h-full z-20">
+              <div className="h-20 flex items-center lg:px-6 border-b"><div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center text-white font-bold text-lg">L</div><h1 className="hidden lg:block ml-3 text-xl font-bold">LACASA</h1></div>
+              <nav className="space-y-2 flex-1 px-2 py-6">
+                <NavItem view="tables" icon={Armchair} label="Tables" />
+                <NavItem view="pos" icon={ShoppingCart} label="Active Order" />
+                <NavItem view="sales" icon={LayoutDashboard} label="Sales" />
+                <NavItem view="stock" icon={ClipboardList} label="Stock" />
+                <NavItem view="inventory" icon={Package} label="Menu" />
+              </nav>
+              <div className="p-4 border-t space-y-2">
+                <button onClick={toggleCurrency} className="flex items-center lg:justify-between w-full p-2 rounded-xl bg-slate-50">
+                  <Coins size={20} className="text-slate-500" /> <span className="hidden lg:block font-bold text-xs border bg-white px-2 py-1 rounded">{currency}</span>
+                </button>
+                <button onClick={logout} className="flex items-center gap-3 w-full p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"><LogOut size={20} /><span className="hidden lg:block">Log Out</span></button>
+              </div>
+            </aside>
+          </>
+        );
+      };
+
       const App = () => {
         const [currentView, setCurrentView] = useState('tables');
         const [activeTicketId, setActiveTicketId] = useState(null);
@@ -458,6 +497,7 @@
           </DataProvider>
         );
       };
+
       ReactDOM.createRoot(document.getElementById('root')).render(<App />);
     </script>
   </body>
