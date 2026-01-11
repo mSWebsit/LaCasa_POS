@@ -437,7 +437,7 @@
                  {showNote && <textarea className="w-full mt-3 p-2 border rounded-lg text-sm resize-none" rows="2" placeholder="Kitchen Note..." value={activeTicket.note || ''} onChange={e => updateTicketDetails(activeTicket.id, { note: e.target.value })} />}
                </div>
             </div>
-
+            
             <div id="printable-receipt" className="print-only">
               {printMode === 'kitchen' ? (
                 <div>
@@ -450,11 +450,18 @@
               ) : (
                 <div>
                   <div className="receipt-header"><div className="receipt-large">LACASA</div><div className="receipt-divider"></div></div>
-                  <div className="receipt-line"><span>{new Date().toLocaleDateString()}</span><span>Table: {activeTicket.name.replace('Table ', '')}</span></div>
+                  <div className="receipt-line">
+                    <span>Date: {new Date().toLocaleDateString()}</span>
+                    
+                  </div>
                   <div className="receipt-divider"></div>
                   {activeTicket.items.map((item, i) => (<div key={i} className="receipt-line"><span>{item.quantity} x {item.name}</span><span>{formatPrice(item.price * item.quantity)}</span></div>))}
                   <div className="receipt-divider"></div>
                   <div className="receipt-line receipt-large"><span>TOTAL</span><span>{formatPrice(activeTotal)}</span></div>
+                  <div style={{marginTop: '20px', textAlign: 'center', paddingRight: '20px'}}>
+                      <div className="receipt-bold">Thank You!</div>
+                      <div style={{fontSize: '10px'}}>Visit us again</div>
+                    </div>
                 </div>
               )}
             </div>
